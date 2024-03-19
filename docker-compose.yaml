@@ -1,9 +1,12 @@
 version: '3.7'
 services:
   minio:
+    container_name: minio
     image: quay.io/minio/minio:RELEASE.2022-02-18T01-50-10Z
     volumes:
       - ./data:/data
+    networks:
+      backend:
     ports:
       - '9000:9000'
       - '9001:9001'
@@ -16,6 +19,8 @@ services:
   postgres:
     image: postgres:13
     container_name: postgres_db
+    networks:
+      backend:
     ports:
        - '5433:5432'
     environment:
@@ -24,5 +29,31 @@ services:
       POSTGRES_PASSWORD: 12345
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  app:
+    container_name: app
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    networks:
+      backend:
+    command: npm run start
+    env_file:
+      - .env.development
+    depends_on:
+      - minio
+      - postgres
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    user: "node"
+networks:
+  backend:
 volumes:
   postgres_data:
+  minio_data:
+    driver: local

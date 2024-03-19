@@ -8,6 +8,8 @@ import * as path from 'path';
 import { REQUEST } from '@nestjs/core';
 import { Transform } from 'stream';
 
+
+
 @Injectable()
 export class NestMinioService {
   private readonly minioClient: Minio.Client;
@@ -22,6 +24,7 @@ export class NestMinioService {
     });
     this.bucketName = this.configService.get('MINIO_BUCKET_NAME') ?? 'my-bucket'
   }
+
 
   private async createBucketIfNotExists() {
     const bucketExists = await this.minioClient.bucketExists(this.bucketName)
@@ -58,44 +61,76 @@ export class NestMinioService {
 
   getContentType(fileName: string): string {
     const ext = getFileExtension(fileName).toLowerCase();
+    console.log(fileName,ext);
     switch (ext) {
-      case '.gz':
+      case 'gz':
         return 'gzip';
-      case '.js':
-        return 'plain/text';
-      case '.html':
+      case 'png':
+        return 'image/png'
+      case 'js':
+        return 'text/javascript';
+      case 'html':
         return 'text/html';
+      case 'wasm':
+        return 'application/wasm';
       default:
-        return 'application/octet-stream';
+        return 'plain/text';
     }
   }
 
-  async findAndModifyHTML(htmlFilePath: string,fileName:string): Promise<string> {
+  createMinioUrls(fileNames:string[],bucketName:string){
+    const minioUrl:string = `${process.env.MINIO_PROTOCOL??'http://'}${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${bucketName}`
+    const responseUrls = {
+      bridgeUrl:`${minioUrl}/${fileNames.find(el=>el.includes('instant-games-bridge'))}`,
+      iconUrl:`${minioUrl}/${fileNames.find(el=>el.includes('.png'))}`,
+      htmlUrl : `${minioUrl}/${fileNames.find(el=>el.includes('.html'))}`,
+      dataUrl: `${minioUrl}/${fileNames.find(el=>el.includes('.data'))}`,
+      loaderUrl:`${minioUrl}/${fileNames.find(el=>el.includes('.loader'))}`,
+      frameworkUrl:`${minioUrl}/${fileNames.find(el=>el.includes('.framework'))}`,
+      wasmUrl:`${minioUrl}/${fileNames.find(el=>el.includes('.wasm'))}`,
+      assetsUrl:`${minioUrl}/${fileNames.find(el=>el.includes('StreamingAssets'))}`,
+    }
+    return responseUrls
+  }
 
-    const serverAddress = `${this.request.url}`;
+  async findAndModifyHTML(htmlFilePath: string, minioUrls: {
+    dataUrl: string;
+    frameworkUrl: string;
+    wasmUrl: string;
+    loaderUrl: string;
+    assetsUrl: string
+    iconUrl:string,
+    bridgeUrl:string
+  }, bucketName: string): Promise<string> {
+
+
     try {
       const htmlContent = fs.readFileSync(htmlFilePath, 'utf-8');
+      // htmlContent.replace(/unityLoader.src = '[^']+'/g,`unityLoader.src = '${serverAddress}/NestMinio/download/${fileName}.loader.js`)
 
       // Найдем индекс вызова createUnityInstance
       const createUnityIndex = htmlContent.indexOf('createUnityInstance(');
-
+      const srcLoaderIndex = htmlContent.indexOf('unityLoader.src')
+      const srcUrl = srcLoaderIndex === -1 ? `${minioUrls.loaderUrl}` : `'${minioUrls.loaderUrl}'`
       // Вставим нужный код перед вызовом createUnityInstance
       const modifiedHtmlContent =
-        htmlContent.slice(0, createUnityIndex) +
-        `const dataUrlResponse = '${serverAddress}/${fileName}.data'
-        const frameworkUrlResponse = '${serverAddress}/${fileName}.framework.js'
-        const codeUrlResponse = '${serverAddress}/${fileName}.wasm'
+        htmlContent.slice(0, createUnityIndex).replace('./instant-games-bridge.js',`${minioUrls.bridgeUrl}`)
+          .replace(/["'].*?loader\.js.*?["']/g,srcUrl) +
+        `const dataUrlResponse = '${minioUrls.dataUrl}';
+        const frameworkUrlResponse = '${minioUrls.frameworkUrl}';
+        const codeUrlResponse = '${minioUrls.wasmUrl}';
+        const streamingUrlResponse = '${minioUrls.assetsUrl}';
 
-        if (!dataUrlResponse.ok || !frameworkUrlResponse.ok || !codeUrlResponse.ok) {
-            throw new Error('Failed to load Unity files');
-        }
+ 
 
-        const dataUrl = URL.createObjectURL(await dataUrlResponse.blob());
-        const frameworkUrl = URL.createObjectURL(await frameworkUrlResponse.blob());
-        const codeUrl = URL.createObjectURL(await codeUrlResponse.blob());` +
-        htmlContent.slice(createUnityIndex).replace(/dataUrl: '[^']+'/g, 'dataUrl')
-          .replace(/frameworkUrl: '[^']+'/g, 'frameworkUrl')
-          .replace(/codeUrl: '[^']+'/g, 'codeUrl');
+        const dataUrl = dataUrlResponse;
+        const frameworkUrl = frameworkUrlResponse;
+        const streamingAssetsUrl = streamingUrlResponse;
+        const codeUrl = codeUrlResponse;` +
+        htmlContent.slice(createUnityIndex).replace(/dataUrl: ['"]([^'"]+)['"]/g, 'dataUrl')
+          .replace(/frameworkUrl: ['"]([^'"]+)['"]/g, 'frameworkUrl')
+          .replace(/streamingAssetsUrl: '['"]([^'"]+)['"]/g, 'streamingAssetsUrl')
+          .replace(/codeUrl: ['"]([^'"]+)['"]/g, 'codeUrl');
 
       // Сохраним измененный HTML файл
       const modifiedHtmlFilePath = path.join(
@@ -110,14 +145,11 @@ export class NestMinioService {
     }
   }
 
-  async extractZip(file: Express.Multer.File,dirUuid:string): Promise<{
-    extractionFilename: string;
-    extractionPath: string
-  }> {
+  async extractZip(file: Express.Multer.File,dirUuid:string): Promise<{ extractionPath: string; fileNames: string[] }> {
 
     const tempDir = path.join(__dirname, '..', 'temp');
     const extractionPath = path.join(tempDir, dirUuid);
-    let foundFileName = ''
+    const nameFilesArray:string[] = []
     // Создаем временную директорию, если она не существует
     if (!fs.existsSync(tempDir)) {
       await fs.promises.mkdir(tempDir);
@@ -129,31 +161,42 @@ export class NestMinioService {
     // Записываем файл во временную директорию
     const tempFilePath = path.join(tempDir, `${dirUuid}.zip`);
     await fs.promises.writeFile(tempFilePath, file.buffer);
-
+    const regex = /\s+/g;
+    console.log(dirUuid);
     // Разархивируем файл
     await new Promise<void>((resolve, reject) => {
       fs.createReadStream(tempFilePath)
         .pipe(unzipper.Parse())
         .pipe(new Transform({
           objectMode: true,
-          transform: (entry, _, cb) => {
-            const fileName = path.basename(entry.path);
-            const destPath = path.join(extractionPath, fileName);
-            if (!fileName.includes('/')) { // Пропускаем файлы во вложенных директориях
-              const type = entry.type; // 'Directory' or 'File'
+          transform: (entry, encoding, cb) => {
 
-              if (type === 'File') {
-                if (fileName.endsWith('.data')) {
-                  foundFileName = fileName;
-                }}
-                entry.autodrain(); // Пропускаем с
+            entry.path = entry.path.replace(regex, '')
+            const fileName = path.basename(entry.path);
+            const isStreamingAssets = entry.path.startsWith('StreamingAssets/');
+            const streamingAssetsPath = path.join(extractionPath, 'StreamingAssets');
+            const type = entry.type; // 'Directory' or 'File'
+            if (entry.type === 'Directory') {
+              entry.autodrain();
+              cb()
+            }
+            if (type === 'File' ) { // Пропускаем файлы во вложенных директориях
+                nameFilesArray.push( isStreamingAssets ? 'StreamingAssets/' : fileName)
+              const destPath = isStreamingAssets
+                ? path.join(streamingAssetsPath, path.relative('StreamingAssets/', entry.path))
+                : path.join(extractionPath, fileName);
+
+              // Создаем директорию StreamingAssets, если она не существует
+              if (isStreamingAssets && !fs.existsSync(streamingAssetsPath)) {
+                fs.mkdirSync(streamingAssetsPath, { recursive: true });
+              }
+
               entry.pipe(fs.createWriteStream(destPath))
                 .on('finish', cb)
                 .on('error', reject);
-            } else {
-              entry.autodrain(); // Пропускаем содержимое директорий
-              cb();
+
             }
+            entry.autodrain();
           }
         }))
         .on('finish', () => {
@@ -169,19 +212,98 @@ export class NestMinioService {
     fs.unlinkSync(tempFilePath);
 
     // Возвращаем путь к директории с разархивированными файлами
-    return { extractionPath, extractionFilename:foundFileName };
+    return { extractionPath, fileNames:nameFilesArray };
 
+  }
+  async deleteTempDirectory(dirUuid:string){
+    const tempFolderPath = path.join(__dirname, '..', 'temp', dirUuid);
+    await fs.promises.rmdir(tempFolderPath, { recursive: true });
+    console.log('Temporary folder deleted successfully.');
   }
 
   async uploadFilesToMinio(extractionPath: string,bucketName:string) {
     // Загрузка файлов в MinIO
-    await this.minioClient.makeBucket(bucketName);
-    const files = await fs.promises.readdir(extractionPath);
-    return await Promise.all(files.map(async file => {
-      const filePath = path.join(extractionPath, file);
-      const fileStream = fs.createReadStream(filePath);
-      await this.minioClient.putObject(bucketName, `/${file}`, fileStream);
-      return `${bucketName}/${file}`;
-    }))
+    try {
+      await this.minioClient.makeBucket(bucketName);
+      this.minioClient.setBucketPolicy(
+        bucketName,
+        JSON.stringify(this.getPolicy(bucketName)),
+        function (err) {
+          if (err) throw err;
+
+          console.log('Bucket policy set');
+        },
+      );
+
+
+      const uploadFileRecursively = async (currentPath: string, basePath: string) => {
+        const files = await fs.promises.readdir(currentPath);
+        const uploadPromises = files.map(async (file) => {
+          const filePath = path.join(currentPath, file);
+          const relativeFilePath = path.relative(basePath, filePath);
+          const stat = await fs.promises.stat(filePath);
+
+          if (stat.isDirectory()) {
+            await uploadFileRecursively(filePath, basePath);
+          } else {
+            const fileStream = fs.createReadStream(filePath);
+
+            await this.minioClient.putObject(bucketName, `/${relativeFilePath}`, fileStream,{'Content-Type':`${this.getContentType(relativeFilePath)}`});
+            return `${bucketName}/${relativeFilePath}`;
+          }
+        });
+
+        return Promise.all(uploadPromises);
+      };
+      return uploadFileRecursively(extractionPath, extractionPath);
+    }
+    catch (e){
+      console.log('Ошибка в minio:' + e);
+    }
+
+  }
+
+  private getCorrectMimeType(){
+
+  }
+
+  private getPolicy(bucketName:string){
+    return  {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: {
+            AWS: ['*'],
+          },
+          Action: [
+            's3:ListBucketMultipartUploads',
+            's3:GetBucketLocation',
+            's3:ListBucket',
+          ],
+          Resource: [`arn:aws:s3:::${bucketName}`], // Change this according to your bucket name
+        },
+        {
+          Effect: 'Allow',
+          Principal: {
+            AWS: ['*'],
+          },
+          Action: [
+            // 's3:PutObject',
+            's3:AbortMultipartUpload',
+            // 's3:DeleteObject',
+            's3:GetObject',
+            's3:ListMultipartUploadParts',
+          ],
+          // "Condition": {
+          //   "StringEquals": {
+          //     "s3:ExistingObjectTag/Content-Type": ["application/javascript", "text/html"]
+          //   }
+          // },
+          Resource: [`arn:aws:s3:::${bucketName}/*`], // Change this according to your bucket name
+        },
+      ],
+    };
+
   }
 }
