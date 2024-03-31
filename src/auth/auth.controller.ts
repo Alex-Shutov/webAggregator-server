@@ -8,7 +8,7 @@ export class AuthController {
   }
   @Post('signUp')
   @UsePipes(new ValidationPipe())
-  async signUp(@Body('credentionals') signUpDto:UrfuLoginDto){
+  async signUp(@Body('credentials') signUpDto:UrfuLoginDto){
     return this.authService.signUp(signUpDto)
   }
   @Post('signIn')
@@ -24,7 +24,7 @@ export class AuthController {
   }
   @Post('loginUrfu')
   @UsePipes(new ValidationPipe())
-  async signUpForUrfu(@Body('user') loginUserDto:UrfuLoginDto){
+  async signUpForUrfu(@Body('credentials') loginUserDto:UrfuLoginDto){
     return await this.authService.signUp(loginUserDto)
   }
 }

@@ -1,6 +1,5 @@
 import { BeforeInsert, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import {hash} from 'bcrypt'
-import { faker } from '@faker-js/faker';
 @Entity('users')
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -18,6 +17,9 @@ export class UserEntity {
   @Column({select:false})
   password:string
 
+  @Column()
+  group:string
+
 
   @BeforeInsert()
   async hashPass(){
@@ -26,8 +28,9 @@ export class UserEntity {
   }
   @BeforeInsert()
   async setParsedData(){
-    this.name = faker.person.firstName()
-    this.surname = faker.person.lastName()
+    // this.name = faker.person.firstName()
+    // this.surname = faker.person.lastName()
+    // this.group = "РИ-400000"
   }
 }
 

@@ -10,6 +10,6 @@ export default setSeederFactory(UserEntity, (faker) => {
   user.surname = faker.person.lastName()
   user.email = faker.internet.email()
   user.password = '12345'
-
+  user.group = "РИ-400000"
   return user;
 });
