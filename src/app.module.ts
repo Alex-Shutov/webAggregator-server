@@ -1,11 +1,14 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { AppController } from '@app/app.controller';
 import { AppService } from '@app/app.service';
 import { TagModule } from '@tag/tag.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import ormconfig from './db/config/ormconfig';
-import { NestMinioModule } from '@app/minio/nestMinio.module';
+import { MinioModule } from '@app/minio/minio.module';
+import { AuthModule } from './auth/auth.module';
+import { UserModule } from './user/user.module';
+import { AuthMiddleware } from '@app/auth/middleware/auth.middleware';
 
 @Module({
   imports: [
@@ -21,9 +24,18 @@ import { NestMinioModule } from '@app/minio/nestMinio.module';
       inject: [ConfigService],
     }),
     TagModule,
-    NestMinioModule
+    MinioModule,
+    AuthModule,
+    UserModule
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer:MiddlewareConsumer){
+    consumer.apply(AuthMiddleware).forRoutes({
+      path:'*',
+      method:RequestMethod.ALL
+    })
+  }
+}
