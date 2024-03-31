@@ -11,7 +11,7 @@ import { Transform } from 'stream';
 
 
 @Injectable()
-export class NestMinioService {
+export class MinioService {
   private readonly minioClient: Minio.Client;
   private bucketName: string
   constructor(@Inject(REQUEST) private request: Request,private readonly configService: ConfigService) {
@@ -111,10 +111,26 @@ export class NestMinioService {
       // Найдем индекс вызова createUnityInstance
       const createUnityIndex = htmlContent.indexOf('createUnityInstance(');
       const srcLoaderIndex = htmlContent.indexOf('unityLoader.src')
+      const headClosingIndex = htmlContent.indexOf('</head>');
+      const styleCode = !minioUrls.bridgeUrl.includes('.js') ? `
+        <style>
+            body {
+                width: 100vw !important;
+                height: 100vh !important;
+                padding: 0px !important;
+                margin: 0px !important;
+            }
+            #unity-canvas {
+                width: 100% !important;
+                height: 100% !important;
+            }
+        </style>
+    ` : '';
       const srcUrl = srcLoaderIndex === -1 ? `${minioUrls.loaderUrl}` : `'${minioUrls.loaderUrl}'`
       // Вставим нужный код перед вызовом createUnityInstance
       const modifiedHtmlContent =
-        htmlContent.slice(0, createUnityIndex).replace('./instant-games-bridge.js',`${minioUrls.bridgeUrl}`)
+
+        htmlContent.slice(0,headClosingIndex) + styleCode + htmlContent.slice(headClosingIndex, createUnityIndex).replace('./instant-games-bridge.js',`${minioUrls.bridgeUrl}`)
           .replace(/["'].*?loader\.js.*?["']/g,srcUrl) +
         `const dataUrlResponse = '${minioUrls.dataUrl}';
         const frameworkUrlResponse = '${minioUrls.frameworkUrl}';
@@ -126,7 +142,9 @@ export class NestMinioService {
         const dataUrl = dataUrlResponse;
         const frameworkUrl = frameworkUrlResponse;
         const streamingAssetsUrl = streamingUrlResponse;
-        const codeUrl = codeUrlResponse;` +
+        const codeUrl = codeUrlResponse;\n` +
+        'var unityInstance = '
+        +
         htmlContent.slice(createUnityIndex).replace(/dataUrl: ['"]([^'"]+)['"]/g, 'dataUrl')
           .replace(/frameworkUrl: ['"]([^'"]+)['"]/g, 'frameworkUrl')
           .replace(/streamingAssetsUrl: '['"]([^'"]+)['"]/g, 'streamingAssetsUrl')

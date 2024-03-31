@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity({ name: 'nestMinios' })
-export class NestMinioEntity {
+@Entity({ name: 'minio' })
+export class MinioEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 }

@@ -8,19 +8,19 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { NestMinioService } from '@app/minio/nestMinio.service';
+import { MinioService } from '@app/minio/minio.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { uuid } from 'uuidv4';
 import { ConfigService } from '@nestjs/config';
 
-@ApiTags('NestMinio')
-@Controller('NestMinio')
-export class NestMinioController {
+@ApiTags('minio')
+@Controller('minio')
+export class MinioController {
 
   private readonly  bucketName:string
-  constructor(private readonly minioService: NestMinioService,private readonly configService: ConfigService) {
+  constructor(private readonly minioService: MinioService,private readonly configService: ConfigService) {
     this.bucketName = uuid()
   }
 
