@@ -8,6 +8,7 @@
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
     "sourceMap": true,
+    "allowImportingTsExtensions": false,
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
@@ -17,7 +18,10 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "paths":{
+    "paths": {
+      "@user/*": ["./src/user/*"],
+      "@auth/*": ["./src/auth/*"],
+      "@minio/*": ["./src/minio/*"],
       "@app/*":["./src/*"],
       "@tag/*":["./src/tag/*"],
     }
