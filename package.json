@@ -17,10 +17,12 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "typeorm": "cross-env NODE_ENV=development npx typeorm-ts-node-commonjs -d src/db/config/ormconfig.ts",
+    "typeorm": "cross-env NODE_ENV=local npx typeorm-ts-node-commonjs -d src/db/config/ormconfig.ts",
     "db:drop": "npm run typeorm schema:drop ",
     "db:create": "npm run typeorm migration:generate src/db/migrations/${npm_config_name}",
-    "db:migrate": "npm run typeorm migration:run",
+    "db:migrate": " npm run typeorm migration:run",
+    "db:revert": "npm run typeorm migration:revert",
+    "db:seed": "cross-env NODE_ENV=local ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -d ./src/db/config/ormconfig.ts",
     "docker:down": "docker compose down",
     "docker:up": "docker-compose up",
     "docker:build": "docker-compose up --build -V -e MINIO_VOLUME=./data"
@@ -35,7 +37,11 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.3.0",
     "@nestjs/typeorm": "^10.0.2",
+    "bcrypt": "^5.1.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
     "compression": "^1.7.4",
+    "jsonwebtoken": "^9.0.2",
     "minio": "^7.1.3",
     "nestjs-minio-client": "^2.2.0",
     "pg": "^8.11.3",
@@ -47,6 +53,7 @@
     "uuidv4": "^6.2.13"
   },
   "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
@@ -74,6 +81,7 @@
     "ts-loader": "^9.4.3",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
+    "typeorm-extension": "^3.5.0",
     "typescript": "^5.1.3"
   },
   "jest": {
