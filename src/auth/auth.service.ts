@@ -3,8 +3,9 @@ import { UrfuLoginDto } from '@app/auth/dto/urfuLogin.dto';
 import { UserEntity } from '@app/user/entities/user.entity';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from '@app/user/user.service';
-import {sign} from 'jsonwebtoken'
+import {sign,verify} from 'jsonwebtoken'
 import {compare} from "bcrypt"
+
 
 
 @Injectable()
@@ -31,6 +32,16 @@ export class AuthService {
     delete user.password
     return user
   }
+
+  async verifyToken(token:string):Promise<UserEntity>{
+    try {
+      return verify(token,this.configService.get('JWT_KEY'))
+    }
+    catch (e){
+      throw new HttpException('Не удалось декодировать токен', HttpStatus.BAD_REQUEST)
+    }
+  }
+
   generateJwt(user:UserEntity){
     return sign({
       id:user.id,

@@ -103,6 +103,7 @@
   },
   "_moduleAliases": {
     "@app": "./dist",
-    "@tag": "./dist/tag"
+    "@tag": "./dist/tag",
+    "@user": "./dist/user"
   }
 }

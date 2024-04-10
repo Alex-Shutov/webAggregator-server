@@ -45,8 +45,29 @@ export class UserService {
     })
   }
 
+  async findByToken(token: string): Promise<UserEntity | null> {
+    try {
+      // Verify the token
+      const decoded = await this.authService.verifyToken(token);
+
+      // Find the user by the decoded user ID
+      const user = await this.userRepository.findOne({
+        where: { id: decoded.id },
+      });
+
+      return user;
+    } catch (err) {
+      // Handle any errors that occur during token verification
+      throw new HttpException('Не удалось найти пользователя с данным id', HttpStatus.UNPROCESSABLE_ENTITY)
+    }
+  }
+
   update(id: number, updateUserDto: UpdateUserDto) {
     return `This action updates a #${id} user`;
+  }
+
+  getUserRole(id: number) {
+    return `This action return user role `;
   }
 
   remove(id: number) {

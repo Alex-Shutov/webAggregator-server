@@ -287,7 +287,6 @@ export class MinioService {
 
   private getPolicy(bucketName:string){
     return  {
-      Version: '2012-10-17',
       Statement: [
         {
           Effect: 'Allow',
@@ -299,7 +298,7 @@ export class MinioService {
             's3:GetBucketLocation',
             's3:ListBucket',
           ],
-          Resource: [`arn:aws:s3:::${bucketName}`], // Change this according to your bucket name
+          Resource: [`arn:aws:s3:::${bucketName}`],
         },
         {
           Effect: 'Allow',
@@ -309,16 +308,10 @@ export class MinioService {
           Action: [
             // 's3:PutObject',
             's3:AbortMultipartUpload',
-            // 's3:DeleteObject',
             's3:GetObject',
             's3:ListMultipartUploadParts',
           ],
-          // "Condition": {
-          //   "StringEquals": {
-          //     "s3:ExistingObjectTag/Content-Type": ["application/javascript", "text/html"]
-          //   }
-          // },
-          Resource: [`arn:aws:s3:::${bucketName}/*`], // Change this according to your bucket name
+          Resource: [`arn:aws:s3:::${bucketName}/*`],
         },
       ],
     };

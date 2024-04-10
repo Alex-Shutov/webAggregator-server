@@ -9,6 +9,8 @@ import { MinioModule } from '@app/minio/minio.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { AuthMiddleware } from '@app/auth/middleware/auth.middleware';
+import { EventModule } from './event/event.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -26,7 +28,9 @@ import { AuthMiddleware } from '@app/auth/middleware/auth.middleware';
     TagModule,
     MinioModule,
     AuthModule,
-    UserModule
+    UserModule,
+    EventModule,
+    RolesModule
   ],
   controllers: [AppController],
   providers: [AppService],
