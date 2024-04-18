@@ -13,6 +13,8 @@ import { UpdateProjectDto } from './dto/updateProject.dto';
 import { ProjectEntity } from './entities/project.entity';
 import { ApiTags } from '@nestjs/swagger';
 import { ProjectStatusGuard } from '@app/project/guards/projectStatus.guard';
+import { UserEntity } from '@user/entities/user.entity';
+import { User } from '@user/decorators/user.decorator';
 
 @ApiTags('projects')
 @Controller('projects')
@@ -21,7 +23,7 @@ export class ProjectController {
 
   @Post()
   create(@Body() createProjectDto: CreateProjectDto): Promise<ProjectEntity> {
-    this.projectService.updateProjectRating()
+    this.projectService.updateProjectRating('')
     return this.projectService.create(createProjectDto);
 
   }
@@ -54,5 +56,18 @@ export class ProjectController {
   updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
     return this.projectService.updateProjectStatus(id, updateProjectDto);
   }
-}
+
+  @Patch(':id/rate')
+  async rateProject(
+    @Param('id') id: string,
+    @Body() {projectId}: {projectId:string},
+
+  ): Promise<ProjectEntity> {
+    try {
+      return await this.projectService.updateRating(projectId);
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  }
+
 }
