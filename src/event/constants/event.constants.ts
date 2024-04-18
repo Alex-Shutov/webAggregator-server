@@ -1,0 +1,1 @@
+export const EVENT_STATUS = ['ON','OFF'] as const
