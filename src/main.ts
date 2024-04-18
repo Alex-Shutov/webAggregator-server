@@ -21,7 +21,7 @@ async function bootstrap() {
     .addTag('NestMinio')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('axios', app, document);
+  SwaggerModule.setup('api', app, document);
   await app.listen(3000);
 }
 bootstrap();

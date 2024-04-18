@@ -10,7 +10,8 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { AuthMiddleware } from '@app/auth/middleware/auth.middleware';
 import { EventModule } from './event/event.module';
-import { RolesModule } from './roles/roles.module';
+import { WebSocketModule } from '@app/websocket/websocket.module';
+import { TeamModule } from '@app/team/team.module';
 
 @Module({
   imports: [
@@ -25,12 +26,12 @@ import { RolesModule } from './roles/roles.module';
         configService.get('typeorm'),
       inject: [ConfigService],
     }),
-    TagModule,
+    TeamModule,
     MinioModule,
     AuthModule,
     UserModule,
     EventModule,
-    RolesModule
+    WebSocketModule
   ],
   controllers: [AppController],
   providers: [AppService],
