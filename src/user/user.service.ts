@@ -66,8 +66,10 @@ export class UserService {
     return `This action updates a #${id} user`;
   }
 
-  getUserRole(id: number) {
-    return `This action return user role `;
+  getUserRole(id: string) {
+    return this.userRepository.findOneBy({
+      id:id
+    });
   }
 
   remove(id: number) {
@@ -82,7 +84,12 @@ export class UserService {
       name:user.name,
       surname:user.surname,
       group:user.group,
-      token:this.authService.generateJwt(user)
+      token:this.authService.generateJwt(user),
+      program:user.program,
+      teams:user.teams,
+      projectRoles:user.projectRoles,
+      level:user.level,
+      contacts:user.contacts,
     }
   }
 
