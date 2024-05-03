@@ -7,7 +7,9 @@ import { User } from '@app/user/decorators/user.decorator';
 import { UserEntity } from '@app/user/entities/user.entity';
 import { AuthGuard } from '@app/auth/guards/auth.guard';
 import { UrfuLoginDto } from '@app/auth/dto/urfuLogin.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('users')
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -48,4 +50,5 @@ export class UserController {
   remove(@Param('id') id: string) {
     return this.userService.remove(+id);
   }
+
 }

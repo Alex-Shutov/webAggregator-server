@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import * as Minio from 'minio';
 import { ConfigService } from '@nestjs/config';
 import { getFileExtension } from '@app/utils/getFileExtension';
@@ -7,13 +7,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { REQUEST } from '@nestjs/core';
 import { Transform } from 'stream';
+import { BufferedFile } from '@minio/interfaces/minio.interface';
 
 
 
 @Injectable()
 export class MinioService {
   private readonly minioClient: Minio.Client;
-  private bucketName: string
   constructor(@Inject(REQUEST) private request: Request,private readonly configService: ConfigService) {
     this.minioClient = new Minio.Client({
       endPoint: this.configService.get('MINIO_ENDPOINT'),
@@ -22,21 +22,30 @@ export class MinioService {
       accessKey: this.configService.get('MINIO_ACCESS_KEY'),
       secretKey: this.configService.get('MINIO_SECRET_KEY')
     });
-    this.bucketName = this.configService.get('MINIO_BUCKET_NAME') ?? 'my-bucket'
+  }
+
+  async createBucket(name:string){
+    await this.minioClient.makeBucket(name,'eu-west-1')
+    this.minioClient.setBucketPolicy(
+      name,
+      JSON.stringify(this.getPolicy(name)),
+      function (err) {
+        if (err) throw err;
+
+        console.log('Bucket policy set');
+      })
   }
 
 
-  private async createBucketIfNotExists() {
-    const bucketExists = await this.minioClient.bucketExists(this.bucketName)
-    if (!bucketExists) {
-      await this.minioClient.makeBucket(this.bucketName, 'eu-west-1')
-    }
+  async createBucketIfNotExists(name:string){
+    if(!await this.minioClient.bucketExists(name)) await this.createBucket(name)
   }
-  async uploadFile(file: Express.Multer.File) {
-    await this.createBucketIfNotExists()
+
+  async uploadFile(file: Express.Multer.File,projectId:string) {
+    await this.createBucketIfNotExists(projectId)
     const fileName = `${Date.now()}-${file.originalname}`
     await this.minioClient.putObject(
-      this.bucketName,
+      projectId,
       fileName,
       file.buffer,
       file.size
@@ -44,12 +53,12 @@ export class MinioService {
     return fileName
   }
 
-  async getFileUrl(fileName: string) {
-    return await this.minioClient.presignedUrl('GET', this.bucketName, fileName)
+  async getFileUrl(fileName: string,projectId:string) {
+    return await this.minioClient.presignedUrl('GET', projectId, fileName)
   }
 
-  async deleteFile(fileName: string) {
-    await this.minioClient.removeObject(this.bucketName, fileName)
+  async deleteFile(fileName: string,projectId:string) {
+    await this.minioClient.removeObject(projectId, fileName)
   }
 
   async downloadFile(fileName: string, bucketName: string) {
@@ -79,7 +88,7 @@ export class MinioService {
   }
 
   createMinioUrls(fileNames:string[],bucketName:string){
-    const minioUrl:string = `${process.env.MINIO_PROTOCOL??'http://'}${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${bucketName}`
+    const minioUrl:string = this.getMinioEndpoint() + bucketName
     const responseUrls = {
       bridgeUrl:`${minioUrl}/${fileNames.find(el=>el.includes('instant-games-bridge'))}`,
       iconUrl:`${minioUrl}/${fileNames.find(el=>el.includes('.png'))}`,
@@ -93,6 +102,67 @@ export class MinioService {
     return responseUrls
   }
 
+  getMinioEndpoint(){
+    return `${process.env.MINIO_PROTOCOL??'http://'}${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/`
+  }
+
+  async uploadImages(files:Express.Multer.File[],projectId:string){
+    const imageUrls:{[s:string]:string} = files.reduce(async (acc,file,index)=>{
+      const obj = acc
+      obj[`image${index}`] = await this.uploadImage(file as BufferedFile,projectId,`image${index}`)
+      return obj
+    },{})
+    return imageUrls
+
+  }
+
+  async uploadVideo(files:Express.Multer.File[], projectId:string){
+    const videoFile = files[0]
+    if(!(videoFile.mimetype.includes('mp4'))) {
+      throw new HttpException('Error uploading video (.mp4)', HttpStatus.BAD_REQUEST)
+    }
+    await this.createBucketIfNotExists(projectId)
+    const ext = videoFile.originalname.substring(videoFile.originalname.lastIndexOf('.'), videoFile.originalname.length);
+    const filename = 'video' + ext
+    const fileBuffer = videoFile.buffer;
+    this.minioClient.putObject(projectId,filename,fileBuffer, function(err) {
+      if(err) throw new HttpException('Error uploading file', HttpStatus.BAD_REQUEST)
+    })
+
+    return this.getMinioEndpoint() + projectId + filename
+  }
+
+  async uploadImage(file: BufferedFile, baseBucket: string,tempFileName:string) {
+    if(!(file.mimetype.includes('jpeg') || file.mimetype.includes('png'))) {
+      throw new HttpException('Error uploading picture (.png, .jpg)', HttpStatus.BAD_REQUEST)
+    }
+    await this.createBucketIfNotExists(baseBucket)
+    const ext = file.originalname.substring(file.originalname.lastIndexOf('.'), file.originalname.length);
+    const filename = tempFileName + ext
+    const fileBuffer = file.buffer;
+    this.minioClient.putObject(baseBucket,filename,fileBuffer, function(err) {
+      if(err) throw new HttpException('Error uploading file', HttpStatus.BAD_REQUEST)
+    })
+
+      return this.getMinioEndpoint() + baseBucket + filename
+  }
+
+
+  async uploadZipProject(file:Express.Multer.File,projectId:string){
+    if(!(file.mimetype.includes('zip'))) {
+      throw new HttpException('Error uploading file (.zip)', HttpStatus.BAD_REQUEST)
+    }
+    const { extractionPath, fileNames } = await this.extractZip(file,projectId);
+    const responseUrls = this.createMinioUrls(fileNames,projectId)
+    await this.findAndModifyHTML(`${extractionPath}/index.html`,responseUrls);
+    await this.uploadFilesToMinio(extractionPath,projectId);
+    await this.deleteTempDirectory(projectId)
+    console.log(`Бакет ${projectId} создан в minio`);
+    return { gameUrls:responseUrls }
+  }
+
+
+
   async findAndModifyHTML(htmlFilePath: string, minioUrls: {
     dataUrl: string;
     frameworkUrl: string;
@@ -101,7 +171,7 @@ export class MinioService {
     assetsUrl: string
     iconUrl:string,
     bridgeUrl:string
-  }, bucketName: string): Promise<string> {
+  },): Promise<string> {
 
 
     try {
@@ -239,10 +309,11 @@ export class MinioService {
     console.log('Temporary folder deleted successfully.');
   }
 
+
   async uploadFilesToMinio(extractionPath: string,bucketName:string) {
     // Загрузка файлов в MinIO
     try {
-      await this.minioClient.makeBucket(bucketName);
+      if(!await this.minioClient.bucketExists(bucketName)) await this.createBucket(bucketName)
       this.minioClient.setBucketPolicy(
         bucketName,
         JSON.stringify(this.getPolicy(bucketName)),

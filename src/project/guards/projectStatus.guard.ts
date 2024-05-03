@@ -27,7 +27,7 @@ export class ProjectStatusGuard implements CanActivate {
 
     // Проверяем, что пользователь имеет роль администратора
     const userRole = await this.userService.getUserRole(user.id);
-    if (userRole.role === ROLES_LIST.find(x=> x === "ADMIN")) {
+    if (userRole.role === ROLES_LIST.ADMIN) {
       return true;
     }
 

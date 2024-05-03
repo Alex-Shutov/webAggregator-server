@@ -1,7 +1,8 @@
 import { Body, Controller, Post, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthService } from '@app/auth/auth.service';
 import { UrfuLoginDto } from '@app/auth/dto/urfuLogin.dto';
-
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService:AuthService) {

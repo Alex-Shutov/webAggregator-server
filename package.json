@@ -17,7 +17,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "typeorm": "cross-env NODE_ENV=local npx typeorm-ts-node-commonjs -d src/db/config/ormconfig.ts",
+    "typeorm": "cross-env NODE_OPTIONS='-r tsconfig-paths/register' NODE_ENV=local npx typeorm-ts-node-commonjs -d src/db/config/ormconfig.ts ",
     "db:drop": "npm run typeorm schema:drop ",
     "db:create": "npm run typeorm migration:generate src/db/migrations/${npm_config_name}",
     "db:migrate": " npm run typeorm migration:run",

@@ -1,10 +1,16 @@
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn, JoinTable, ManyToMany,
+  ManyToOne,
+  OneToMany, OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { TeamEntity } from '../../team/entities/team.entity';
-import { UserEntity } from '../../user/entities/user.entity';
 import { ProjectRolesEntity } from './projectRoles.entity';
-import { EventEntity } from '../../event/entities/event.entity';
-import { ROLES_LIST } from '@user/constanst/user.constants';
 import { PROJECT_STATUSES } from '@app/project/constants/project.constants';
+import { CategoryEntity } from '@app/categories/entities/category.entity';
+import { EventEntity } from '@app/event/entities/event.entity';
 
 @Entity('projects')
 export class ProjectEntity {
@@ -23,17 +29,16 @@ export class ProjectEntity {
   @Column()
   gitLink: string;
 
-  @Column('simple-array')
-  screenshots: string[];
 
   @Column()
   rating: number;
 
-  @ManyToOne(()=>EventEntity,(event)=>event.projects)
-  event:EventEntity
+  @OneToOne(()=>EventEntity,(event)=>event.id)
+  eventId:EventEntity
 
-  @ManyToOne(() => TeamEntity, (team) => team.project)
-  teams: TeamEntity[];
+  @OneToOne(() => TeamEntity, (team) => team.id)
+  @JoinColumn()
+  team: TeamEntity;
 
   @Column(
     {
@@ -45,9 +50,13 @@ export class ProjectEntity {
   status:string
 
 
+  @ManyToMany(() => CategoryEntity, (category) => category.id)
+  categoriesId: CategoryEntity[];
 
 
-
-  @OneToMany(() => ProjectRolesEntity, (userProjectRole) => userProjectRole.project)
-  userRoles: ProjectRolesEntity[];
 }
+
+
+
+
+

@@ -1,6 +1,7 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ProjectEntity } from './project.entity';
 import { UserEntity } from '../../user/entities/user.entity';
+import { TeamEntity } from '@app/team/entities/team.entity';
 
 @Entity('project_roles')
 export class ProjectRolesEntity {
@@ -13,6 +14,6 @@ export class ProjectRolesEntity {
   @ManyToOne(() => UserEntity, (user) => user.projectRoles)
   user: UserEntity;
 
-  @ManyToOne(() => ProjectEntity, (project) => project.userRoles)
-  project: ProjectEntity;
+  @ManyToOne(() => TeamEntity, (team) => team.id)
+  team: TeamEntity;
 }

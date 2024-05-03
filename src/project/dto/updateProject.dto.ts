@@ -1,1 +1,2 @@
-export class UpdateProjectDto{}
+export class UpdateProjectDto{
+}

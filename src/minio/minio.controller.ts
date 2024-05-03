@@ -1,15 +1,14 @@
 import {
   Controller,
-  Delete,
-  Get, Header,
+  Get,
   Param,
   Post,
   Res,
-  UploadedFile,
+  UploadedFile, UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { MinioService } from '@app/minio/minio.service';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { uuid } from 'uuidv4';
@@ -24,7 +23,68 @@ export class MinioController {
     this.bucketName = uuid()
   }
 
-  @Post('upload')
+  @Post('uploadFiles/:projectId')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'zip', maxCount:1 },
+    { name: 'images', maxCount: 5 },
+    { name: 'mainImage', maxCount: 1 },
+    { name: 'video', maxCount: 1 },
+  ]))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'All files that go to public store',
+    type: 'object',
+    schema: {
+      type:'object',
+      properties: {
+        zip: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary'
+          }
+        },
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary'
+          },
+        },
+        mainImage: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary'
+          },
+        },
+        video: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary'
+          },
+        }
+      }
+    }
+  })
+  async uploadAllFilesToMinio(
+    @UploadedFiles() files: {zip:Express.Multer.File,images:Express.Multer.File[],mainImage:Express.Multer.File[],video:Express.Multer.File[] },
+    @Param('projectId') projectId:string
+  ) {
+    const imageUrls = await this.minioService.uploadImages(files.images,projectId)
+    const bundleUrls = await this.minioService.uploadZipProject(files.zip,projectId)
+    const mainImageUrl = await this.minioService.uploadImages(files.mainImage,projectId)
+    const videoUrl = await this.minioService.uploadVideo(files.video,projectId)
+    return {
+      images:imageUrls,
+      bundle:bundleUrls,
+      mainImage:mainImageUrl,
+      video:videoUrl
+    }
+  }
+
+  @Post('uploadProject/:projectId')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -40,17 +100,10 @@ export class MinioController {
       },
     }
   })
-  async uploadProject(@UploadedFile() file: Express.Multer.File) {
+  async uploadProject(@UploadedFile() file: Express.Multer.File, @Param(':projectId') projectId:string) {
     try {
-      const bucketName = this.bucketName.trim()
-
-      const { extractionPath, fileNames } = await this.minioService.extractZip(file,bucketName);
-      const responseUrls = this.minioService.createMinioUrls(fileNames,bucketName)
-      await this.minioService.findAndModifyHTML(`${extractionPath}/index.html`,responseUrls,bucketName);
-      await this.minioService.uploadFilesToMinio(extractionPath,bucketName);
-      await this.minioService.deleteTempDirectory(bucketName)
-      console.log(`Бакет ${bucketName} создан в minio`);
-      return { success: true, responseUrls };
+     const ulrs = await this.minioService.uploadZipProject(file,projectId)
+      return {success:true,urls:ulrs}
     } catch (error) {
       console.error('Ошибка при загрузке проекта:', error);
       throw error;
@@ -86,19 +139,14 @@ export class MinioController {
     return fileStream.pipe(res);
   }
 
-  @Get('download/url/:fileName')
-  @Header("Content-Type", "application/javascript")
-  async getBookCover(
-    @Param('fileName') fileName: string,
-    ) {
-    const fileUrl = await this.minioService.getFileUrl(fileName)
+  // @Get('download/url/:fileName')
+  // @Header("Content-Type", "application/javascript")
+  // async getBookCover(
+  //   @Param('fileName') fileName: string,
+  //   ) {
+  //   const fileUrl = await this.minioService.getFileUrl(fileName)
+  //
+  //   return fileUrl
+  // }
 
-    return fileUrl
-  }
-
-  @Delete('covers/:fileName')
-  async deleteBookCover(@Param('fileName') fileName: string) {
-    await this.minioService.deleteFile(fileName)
-    return fileName
-  }
 }

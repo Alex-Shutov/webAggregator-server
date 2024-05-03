@@ -35,7 +35,4 @@ export class TeamService {
     await this.teamRepository.delete(id);
   }
 
-  getUserId(authorization: any) {
-
-  }
 }

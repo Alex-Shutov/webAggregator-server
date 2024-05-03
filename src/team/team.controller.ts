@@ -13,6 +13,7 @@ import { UpdateTeamDto } from './dto/updateTeam.dto';
 import { TeamEntity } from './entities/team.entity';
 import { ApiTags } from '@nestjs/swagger';
 import { User } from '@user/decorators/user.decorator';
+import { TeamLeaderGuard } from '@app/team/guards/teamLeader.guard';
 
 @ApiTags('teams')
 @Controller('teams')

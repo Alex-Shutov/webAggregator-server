@@ -1,1 +1,13 @@
-export const EVENT_STATUS = ['ON','OFF'] as const
+export interface IEvent{
+  id:string
+  name:string
+  status:IEventStatus
+  finishDate?:Date
+}
+
+export enum IEventStatus {
+  'OPENED',
+  'CLOSED',
+  'OPEN_VOTE',
+  'CLOSE_VOTE'
+}

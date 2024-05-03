@@ -19,30 +19,39 @@ export class EventController {
   constructor(private readonly eventService: EventService) {}
 
   @Post()
-  create(@Body() createEventDto: CreateEventDto): Promise<EventEntity> {
-    return this.eventService.create(createEventDto);
+  async create(@Body() createEventDto: CreateEventDto): Promise<EventEntity> {
+    return await this.eventService.create(createEventDto);
   }
 
   @Get()
-  findAll(): Promise<EventEntity[]> {
-    return this.eventService.findAll();
+  async findAll(): Promise<EventEntity[]> {
+    return await this.eventService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<EventEntity> {
-    return this.eventService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<EventEntity> {
+    return await this.eventService.findById(id);
   }
 
   @Put(':id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateEventDto: UpdateEventDto,
   ): Promise<EventEntity> {
-    return this.eventService.update(id, updateEventDto);
+    return await this.eventService.update(id, updateEventDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.eventService.remove(id);
+  async remove(@Param('id') id: string) {
+    return await this.eventService.remove(id);
+  }
+
+  @Put('change/:id')
+  async changeStatus(
+    @Param('id') eventId:string,
+    @Body() updateEventDto:Partial<UpdateEventDto>
+  ){
+    const event = await this.eventService.changeStatus(eventId,updateEventDto)
+    return this.eventService.createResponse(event)
   }
 }

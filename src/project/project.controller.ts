@@ -13,8 +13,8 @@ import { UpdateProjectDto } from './dto/updateProject.dto';
 import { ProjectEntity } from './entities/project.entity';
 import { ApiTags } from '@nestjs/swagger';
 import { ProjectStatusGuard } from '@app/project/guards/projectStatus.guard';
-import { UserEntity } from '@user/entities/user.entity';
-import { User } from '@user/decorators/user.decorator';
+import { ProjectResponse } from '@app/project/interfaces/project.interface';
+import { AdminGuard } from '@user/guards/admin.guard';
 
 @ApiTags('projects')
 @Controller('projects')
@@ -22,10 +22,10 @@ export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto): Promise<ProjectEntity> {
-    this.projectService.updateProjectRating('')
-    return this.projectService.create(createProjectDto);
-
+  async create(@Body() createProjectDto: CreateProjectDto): Promise<ProjectResponse> {
+    // this.projectService.updateProjectRating('')
+    const proj = await this.projectService.create(createProjectDto);
+    return this.projectService.createResponse(proj)
   }
 
   @Get()
@@ -34,40 +34,43 @@ export class ProjectController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<ProjectEntity> {
-    return this.projectService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<ProjectResponse> {
+    const proj = await this.projectService.findOne(id);
+    return this.projectService.createResponse(proj)
+
   }
 
   @Put(':id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto,
-  ): Promise<ProjectEntity> {
-    return this.projectService.update(id, updateProjectDto);
+  ): Promise<ProjectResponse> {
+    const proj =  await this.projectService.update(id, updateProjectDto);
+    return this.projectService.createResponse(proj)
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.projectService.remove(id);
+  async remove(@Param('id') id: string): Promise<void> {
+    return await this.projectService.remove(id);
+
   }
 
   @Patch(':id')
   @UseGuards(ProjectStatusGuard)
-  updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
-    return this.projectService.updateProjectStatus(id, updateProjectDto);
+  async updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
+    const proj = await this.projectService.updateProjectStatus(id, updateProjectDto);
+    return this.projectService.createResponse(proj)
   }
 
-  @Patch(':id/rate')
-  async rateProject(
-    @Param('id') id: string,
-    @Body() {projectId}: {projectId:string},
 
-  ): Promise<ProjectEntity> {
-    try {
-      return await this.projectService.updateRating(projectId);
-    } catch (error) {
-      throw new Error(error.message);
-    }
+  @Patch('/updateStatus/:id')
+  @UseGuards(AdminGuard)
+  async updateStatus(
+    @Param('id') id:string,
+    @Body() {status}: {status:string},
+  ):Promise<ProjectResponse>{
+    const project = await this.projectService.updateStatus(id,status)
+    return this.projectService.createResponse(project)
   }
 
 }

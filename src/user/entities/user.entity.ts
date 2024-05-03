@@ -1,10 +1,8 @@
 import { BeforeInsert, Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import {hash} from 'bcrypt'
 import { LEVEL_LIST, PROGRAM_LIST, ROLES_LIST } from '../constanst/user.constants';
-import { ProjectEntity } from '../../project/entities/project.entity';
 import { ProjectRolesEntity } from '../../project/entities/projectRoles.entity';
 import { EventEntity } from '@app/event/entities/event.entity';
-import { TeamEntity } from '@app/team/entities/team.entity';
 @Entity('users')
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -28,7 +26,7 @@ export class UserEntity {
   @Column({
     type: 'enum',
     enum: ROLES_LIST,
-    default: ROLES_LIST[0],
+    default: ROLES_LIST.STUDENT,
   })
   role:string
 
@@ -52,23 +50,6 @@ export class UserEntity {
   @OneToMany(() => ProjectRolesEntity, (userProjectRole) => userProjectRole.user)
   @JoinTable()
   projectRoles: ProjectRolesEntity[];
-
-  @ManyToMany(() => TeamEntity, (team) => team.members)
-  @JoinTable()
-  teams: ProjectEntity[];
-
-  @ManyToMany(()=>EventEntity,(entity)=>entity.id,{ cascade: true })
-  @JoinTable({
-    name: "rated_events_users_ids", // table name for the junction table of this relation
-    joinColumn: {
-      name: "users",
-      referencedColumnName: "id"
-    },
-    inverseJoinColumn: {
-      name: "events",
-      referencedColumnName: "id"
-    }})
-  ratedEvents:string[]
 
 
   @BeforeInsert()

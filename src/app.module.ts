@@ -1,7 +1,6 @@
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { AppController } from '@app/app.controller';
 import { AppService } from '@app/app.service';
-import { TagModule } from '@tag/tag.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import ormconfig from './db/config/ormconfig';
@@ -12,6 +11,10 @@ import { AuthMiddleware } from '@app/auth/middleware/auth.middleware';
 import { EventModule } from './event/event.module';
 import { WebSocketModule } from '@app/websocket/websocket.module';
 import { TeamModule } from '@app/team/team.module';
+import { CategoriesModule } from './categories/categories.module';
+import { GradeModule } from './grade/grade.module';
+import { GradeModule } from './src/grade/grade.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -31,7 +34,9 @@ import { TeamModule } from '@app/team/team.module';
     AuthModule,
     UserModule,
     EventModule,
-    WebSocketModule
+    WebSocketModule,
+    CategoriesModule,
+    GradeModule
   ],
   controllers: [AppController],
   providers: [AppService],

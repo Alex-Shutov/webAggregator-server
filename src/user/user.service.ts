@@ -86,7 +86,6 @@ export class UserService {
       group:user.group,
       token:this.authService.generateJwt(user),
       program:user.program,
-      teams:user.teams,
       projectRoles:user.projectRoles,
       level:user.level,
       contacts:user.contacts,
