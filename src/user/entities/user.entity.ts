@@ -1,8 +1,17 @@
-import { BeforeInsert, Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  BeforeInsert,
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import {hash} from 'bcrypt'
 import { LEVEL_LIST, PROGRAM_LIST, ROLES_LIST } from '../constanst/user.constants';
 import { ProjectRolesEntity } from '../../project/entities/projectRoles.entity';
-import { EventEntity } from '@app/event/entities/event.entity';
+import { ProjectEntity } from '../../project/entities/project.entity';
 @Entity('users')
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -28,28 +37,33 @@ export class UserEntity {
     enum: ROLES_LIST,
     default: ROLES_LIST.STUDENT,
   })
-  role:string
+  role:ROLES_LIST
 
   @Column({
     type: 'enum',
     enum: PROGRAM_LIST,
-    default: PROGRAM_LIST[0],
+    default: PROGRAM_LIST['09.03.01'],
   })
-  program: typeof PROGRAM_LIST[number];
+  program: PROGRAM_LIST;
 
   @Column({
     type: 'enum',
     enum: LEVEL_LIST,
-    default: LEVEL_LIST[0],
+    default: LEVEL_LIST.SECOND,
   })
-  level: typeof LEVEL_LIST[number];
+  level: LEVEL_LIST;
 
   @Column({ nullable: true })
   contacts: string;
 
-  @OneToMany(() => ProjectRolesEntity, (userProjectRole) => userProjectRole.user)
+  @OneToMany(() => ProjectRolesEntity, (userProjectRole) => userProjectRole)
   @JoinTable()
   projectRoles: ProjectRolesEntity[];
+
+  @ManyToMany(()=>ProjectEntity,(project)=>project.id)
+  @JoinTable({name:'PortfolioTable'})
+  projectIds:ProjectEntity[]
+
 
 
   @BeforeInsert()

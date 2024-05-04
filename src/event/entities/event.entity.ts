@@ -1,7 +1,6 @@
 import { AfterUpdate, Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { ProjectEntity } from '../../project/entities/project.entity';
-import { IEventStatus } from '@app/event/constants/event.constants';
-import { UserEntity } from '@user/entities/user.entity';
+import { IEventStatus } from '../constants/event.constants';
 
 @Entity('events')
 export class EventEntity {
@@ -21,5 +20,7 @@ export class EventEntity {
   })
   status: IEventStatus;
 
+  @OneToMany(()=>ProjectEntity,(project)=>project.id)
+  projectIds:string[]
 
 }

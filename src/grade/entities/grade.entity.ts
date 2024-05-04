@@ -1,7 +1,7 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { EventEntity } from '@app/event/entities/event.entity';
-import { UserEntity } from '@user/entities/user.entity';
-import { ProjectEntity } from '@app/project/entities/project.entity';
+import { EventEntity } from '../../event/entities/event.entity';
+import { UserEntity } from '../../user/entities/user.entity';
+import { ProjectEntity } from '../../project/entities/project.entity';
 
 @Entity('grades')
 export class GradeEntity {

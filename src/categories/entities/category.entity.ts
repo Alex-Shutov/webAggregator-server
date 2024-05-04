@@ -1,5 +1,4 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, ManyToMany } from 'typeorm';
-import { ProjectEntity } from '@app/project/entities/project.entity';
 
 @Entity('categories')
 export class CategoryEntity {

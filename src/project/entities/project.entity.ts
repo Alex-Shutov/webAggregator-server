@@ -8,9 +8,9 @@ import {
 } from 'typeorm';
 import { TeamEntity } from '../../team/entities/team.entity';
 import { ProjectRolesEntity } from './projectRoles.entity';
-import { PROJECT_STATUSES } from '@app/project/constants/project.constants';
-import { CategoryEntity } from '@app/categories/entities/category.entity';
-import { EventEntity } from '@app/event/entities/event.entity';
+import { PROJECT_STATUSES } from '../constants/project.constants';
+import { CategoryEntity } from '../../categories/entities/category.entity';
+import { EventEntity } from '../../event/entities/event.entity';
 
 @Entity('projects')
 export class ProjectEntity {
@@ -34,7 +34,8 @@ export class ProjectEntity {
   rating: number;
 
   @OneToOne(()=>EventEntity,(event)=>event.id)
-  eventId:EventEntity
+  @JoinColumn()
+  event:EventEntity
 
   @OneToOne(() => TeamEntity, (team) => team.id)
   @JoinColumn()
@@ -47,11 +48,12 @@ export class ProjectEntity {
       default:PROJECT_STATUSES.DRAFT
     }
   )
-  status:string
+  status:PROJECT_STATUSES
 
 
   @ManyToMany(() => CategoryEntity, (category) => category.id)
   categoriesId: CategoryEntity[];
+
 
 
 }

@@ -4,14 +4,13 @@ import {
   JoinColumn,
   JoinTable,
   ManyToMany,
-  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ProjectEntity } from '../../project/entities/project.entity';
-import { UserEntity } from '@user/entities/user.entity';
-import { ProjectRolesEntity } from '@app/project/entities/projectRoles.entity';
+import { UserEntity } from '../../user/entities/user.entity';
+import { ProjectRolesEntity } from '../../project/entities/projectRoles.entity';
 
 
 @Entity('teams')
@@ -23,15 +22,15 @@ export class TeamEntity {
   name: string;
 
   @OneToOne(()=>ProjectEntity,(project)=>project.id)
-  project:ProjectEntity
+  projectId:string
 
-  @ManyToMany(() => UserEntity, (user) => user)
+  @ManyToMany(() => UserEntity, (user) => user.id)
   @JoinTable()
-  members: UserEntity[];
+  membersIds: string[];
 
   @OneToMany(()=>ProjectRolesEntity,(projectRole)=>projectRole.id)
   @JoinColumn()
-  projectRole:string
+  projectRolesIds:string[]
 
 
 
