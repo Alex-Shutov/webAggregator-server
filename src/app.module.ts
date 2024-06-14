@@ -11,10 +11,9 @@ import { AuthMiddleware } from '@app/auth/middleware/auth.middleware';
 import { EventModule } from './event/event.module';
 import { WebSocketModule } from '@app/websocket/websocket.module';
 import { TeamModule } from '@app/team/team.module';
-import { CategoriesModule } from './categories/categories.module';
 import { GradeModule } from './grade/grade.module';
-import { GradeModule } from './src/grade/grade.module';
 import { CategoriesModule } from './categories/categories.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -36,7 +35,8 @@ import { CategoriesModule } from './categories/categories.module';
     EventModule,
     WebSocketModule,
     CategoriesModule,
-    GradeModule
+    GradeModule,
+    RolesModule
   ],
   controllers: [AppController],
   providers: [AppService],
