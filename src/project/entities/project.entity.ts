@@ -7,7 +7,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { TeamEntity } from '../../team/entities/team.entity';
-import { ProjectRolesEntity } from './projectRoles.entity';
 import { PROJECT_STATUSES } from '../constants/project.constants';
 import { CategoryEntity } from '../../categories/entities/category.entity';
 import { EventEntity } from '../../event/entities/event.entity';
@@ -17,29 +16,36 @@ export class ProjectEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({nullable:true})
   name: string;
 
-  @Column()
+  @Column({nullable:true})
   description: string;
 
-  @Column()
+  @Column({nullable:true})
   howToPlay: string;
 
-  @Column()
+  @Column({nullable:true})
   gitLink: string;
 
 
-  @Column()
+  @Column({nullable:true})
   rating: number;
 
-  @OneToOne(()=>EventEntity,(event)=>event.id)
-  @JoinColumn()
-  event:EventEntity
+
+  @ManyToOne(() => EventEntity, (event) => event.id)
+  @JoinColumn({ name: 'eventId' })
+  event: EventEntity;
+
+  @Column({ nullable: true })
+  eventId: string;
 
   @OneToOne(() => TeamEntity, (team) => team.id)
-  @JoinColumn()
+  @JoinColumn({name:'teamId'})
   team: TeamEntity;
+
+  @Column({ nullable: true })
+  teamId:string
 
   @Column(
     {
@@ -51,7 +57,18 @@ export class ProjectEntity {
   status:PROJECT_STATUSES
 
 
-  @ManyToMany(() => CategoryEntity, (category) => category.id)
+  @ManyToMany(() => CategoryEntity, (category) => category.id,{cascade:true})
+  @JoinTable({
+    name:'projects_categories_categories',
+    joinColumn: {
+      name: "projectId",
+      referencedColumnName: "id"
+    },
+    inverseJoinColumn: {
+      name: "categoriesId",
+      referencedColumnName: "id"
+    }
+  })
   categoriesId: CategoryEntity[];
 
 
