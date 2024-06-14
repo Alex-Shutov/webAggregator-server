@@ -24,8 +24,8 @@ export class AuthController {
 
   }
   @Post('loginUrfu')
-  @UsePipes(new ValidationPipe())
+  // @UsePipes(new ValidationPipe())
   async signUpForUrfu(@Body('credentials') loginUserDto:UrfuLoginDto){
-    return await this.authService.signUp(loginUserDto)
+    return await this.authService.loginUrfu(loginUserDto)
   }
 }

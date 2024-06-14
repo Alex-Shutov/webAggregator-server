@@ -1,9 +1,9 @@
 import { IsEmail, IsNotEmpty } from 'class-validator';
 
 export class UrfuLoginDto {
-  @IsNotEmpty()
-  @IsEmail()
+  // @IsNotEmpty()
+  // @IsEmail()
   readonly email:string
-  @IsNotEmpty()
+  // @IsNotEmpty()
   readonly password:string
 }
