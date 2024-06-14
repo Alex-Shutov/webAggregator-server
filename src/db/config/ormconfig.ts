@@ -15,10 +15,11 @@ export const dataSourceOptions:DataSourceOptions & SeederOptions = {
   database: process.env.DATABASE_NAME,
   password: process.env.DATABASE_PASSWORD,
   entities: [path.resolve(__dirname, '..', '..') + '/**/*.entity{.ts,.js}'],
-  synchronize: false,
   migrations: [
     path.resolve(__dirname, '..', '..') + '/db/migrations/*{.ts,.js}',
   ],
+  synchronize: false,
+  
   // cli: {
   //   migrationsDir: path.resolve(__dirname, '..') + '/migrations',
   // },

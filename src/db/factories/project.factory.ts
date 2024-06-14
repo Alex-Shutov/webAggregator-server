@@ -44,8 +44,8 @@ const createTeam = (projectId:string) => {
   team.name = faker.company.name();
   team.projectId = projectId
   const users = createFakeUsers(team)
-  team.membersIds = users.map(el=>el.id)
-  team.projectRolesIds = users.flatMap(el=>el.projectRoles.map(y=>y.id))
+  // team.membersIds = users.map(el=>el.id)
+  // team.projectRolesIds = users.flatMap(el=>el.projectRoles.map(y=>y.id))
   return team;
 }
 
@@ -56,6 +56,7 @@ const createFakeUsers = (team:TeamEntity) => {
     const user = new UserEntity()
     user.name = faker.person.firstName()
     user.surname = faker.person.lastName()
+    user.patronymic = faker.person.middleName()
     user.email = faker.internet.email()
     user.password = '12345'
     user.group = "РИ-400000"
@@ -63,7 +64,7 @@ const createFakeUsers = (team:TeamEntity) => {
     user.contacts = faker.phone.number()
     user.level = LEVEL_LIST.SECOND
     user.program = PROGRAM_LIST['09.03.01']
-    user.projectRoles = createFakeProjectRolesByUsers([user],team)
+    // user.projectRoles = createFakeProjectRolesByUsers([user],team)
     users.push(user)
   })
   return users
