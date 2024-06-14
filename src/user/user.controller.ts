@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
@@ -8,6 +8,7 @@ import { UserEntity } from '@app/user/entities/user.entity';
 import { AuthGuard } from '@app/auth/guards/auth.guard';
 import { UrfuLoginDto } from '@app/auth/dto/urfuLogin.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { SearchUserDto } from '@user/dto/searchUser.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -19,11 +20,23 @@ export class UserController {
     const user = await this.userService.create(createUserDto);
     return this.userService.createResponse(user)
   }
+  @Get('me')
+  async getMe(@User() user:UserEntity){
+    if(!user?.id)
+      return null
+    const userEntity = await this.userService.findOne({id:user.id},['projectRoles'])
+    return this.userService.createResponse(userEntity)
+  }
 
   @Get('?all')
   @UseGuards(AuthGuard)
   findAll() {
     return this.userService.findAll();
+  }
+
+  @Get('search')
+  async searchUsers(@Query() { query }: SearchUserDto, @User('id') userId:string): Promise<UserEntity[]> {
+    return this.userService.searchUsers(query,userId);
   }
 
   @Get()
@@ -36,13 +49,17 @@ export class UserController {
   @Get(':id')
   @UseGuards(AuthGuard)
   findOne(@Param('id') id: string) {
-    return this.userService.findOne(id);
+    return this.userService.findOne({id:id},['projectRoles']);
   }
 
   @Patch(':id')
   @UseGuards(AuthGuard)
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+
+    const user =  await this.userService.update(id, updateUserDto);
+    return this.userService.createResponse(user)
+
+
   }
 
   @Delete(':id')

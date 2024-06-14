@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import {hash} from 'bcrypt'
 import { LEVEL_LIST, PROGRAM_LIST, ROLES_LIST } from '../constanst/user.constants';
-import { ProjectRolesEntity } from '../../project/entities/projectRoles.entity';
+import { ProjectRolesEntity } from '../../roles/entities/projectRoles.entity';
 import { ProjectEntity } from '../../project/entities/project.entity';
 @Entity('users')
 export class UserEntity {
@@ -25,6 +25,9 @@ export class UserEntity {
 
   @Column()
   surname:string
+
+  @Column({nullable:true})
+  patronymic:string
 
   @Column({select:false})
   password:string
@@ -56,9 +59,9 @@ export class UserEntity {
   @Column({ nullable: true })
   contacts: string;
 
-  @OneToMany(() => ProjectRolesEntity, (userProjectRole) => userProjectRole)
+  @ManyToOne(() => ProjectRolesEntity, (userProjectRole) => userProjectRole)
   @JoinTable()
-  projectRoles: ProjectRolesEntity[];
+  projectRoles: ProjectRolesEntity;
 
   @ManyToMany(()=>ProjectEntity,(project)=>project.id)
   @JoinTable({name:'PortfolioTable'})

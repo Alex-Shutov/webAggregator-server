@@ -2,10 +2,12 @@ import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nest
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { UserEntity } from '@app/user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { AuthService } from '@app/auth/auth.service';
 import { UserResponse } from '@app/user/interfaces/user.interfaces';
 import { UrfuLoginDto } from '@app/auth/dto/urfuLogin.dto';
+import { EventEntity } from '@app/event/entities/event.entity';
+import { TeamService } from '@app/team/team.service';
 
 @Injectable()
 export class UserService {
@@ -13,7 +15,9 @@ export class UserService {
     @InjectRepository(UserEntity)
     private readonly userRepository:Repository<UserEntity>,
     @Inject(forwardRef(()=>AuthService))
-    private readonly authService:AuthService) {
+    private readonly authService:AuthService,
+    private readonly teamService:TeamService
+  ) {
 
   }
 
@@ -33,10 +37,8 @@ export class UserService {
     return `This action returns all user`;
   }
 
-  findOne(id: string) {
-    return this.userRepository.findOneBy({
-      id:id
-    })
+   findOne(params:FindOptionsWhere<EventEntity>,relations:string[]=[]): Promise<UserEntity> {
+    return  this.userRepository.findOne({where:params,relations });
   }
 
   findByEmail(email:string){
@@ -62,8 +64,14 @@ export class UserService {
     }
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const user = await this.userRepository.findOne({
+      where:{
+        id:id,
+      },relations:['projectRoles','projectIds']
+    })
+    this.userRepository.merge(user,updateUserDto)
+    return this.userRepository.save(user)
   }
 
   getUserRole(id: string) {
@@ -79,6 +87,8 @@ export class UserService {
   createResponse(user:UserEntity):UserResponse{
   return {
     user:{
+      patronymic:user?.patronymic,
+      projectIds:user?.projectIds,
       id:user.id,
       email:user.email,
       name:user.name,
@@ -93,4 +103,22 @@ export class UserService {
   }
 
   }
+
+  async searchUsers(query: string, currentUserId: string) {
+    const subQuery = await this.teamService.createSubQueryForUserSearch()
+
+    return this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.projectRoles', 'projectRole')
+      .where('LOWER(user.surname) LIKE LOWER(:query)', { query: `%${query}%` })
+      .orWhere('LOWER(user.name) LIKE LOWER(:query)', { query: `%${query}%` })
+      .orWhere('LOWER(user.patronymic) LIKE LOWER(:query)', { query: `%${query}%` })
+      .orWhere('LOWER(user.email) LIKE LOWER(:query)', { query: `%${query}%` })
+      .andWhere('user.id != :currentUserId', { currentUserId })
+      .andWhere('user.role = :role', { role: 'STUDENT' })
+      .andWhere(`user.id NOT IN (${subQuery.getQuery()})`)
+      .setParameters(subQuery.getParameters())
+      .getMany();
+  }
+
 }
