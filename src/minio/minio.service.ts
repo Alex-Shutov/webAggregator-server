@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import * as Minio from 'minio';
+import { UploadedObjectInfo } from 'minio';
 import { ConfigService } from '@nestjs/config';
 import { getFileExtension } from '@app/utils/getFileExtension';
 import * as unzipper from 'unzipper';
@@ -10,9 +11,10 @@ import { Transform } from 'stream';
 import { BufferedFile } from '@minio/interfaces/minio.interface';
 
 
-
 @Injectable()
-export class MinioService {
+export class
+
+MinioService {
   private readonly minioClient: Minio.Client;
   constructor(@Inject(REQUEST) private request: Request,private readonly configService: ConfigService) {
     this.minioClient = new Minio.Client({
@@ -25,7 +27,7 @@ export class MinioService {
   }
 
   async createBucket(name:string){
-    await this.minioClient.makeBucket(name,'eu-west-1')
+    await this.minioClient.makeBucket(name,'eu-west-1',)
     this.minioClient.setBucketPolicy(
       name,
       JSON.stringify(this.getPolicy(name)),
@@ -41,24 +43,18 @@ export class MinioService {
     if(!await this.minioClient.bucketExists(name)) await this.createBucket(name)
   }
 
-  async uploadFile(file: Express.Multer.File,projectId:string) {
-    await this.createBucketIfNotExists(projectId)
-    const fileName = `${Date.now()}-${file.originalname}`
-    await this.minioClient.putObject(
-      projectId,
-      fileName,
-      file.buffer,
-      file.size
-    )
-    return fileName
-  }
-
   async getFileUrl(fileName: string,projectId:string) {
     return await this.minioClient.presignedUrl('GET', projectId, fileName)
   }
 
   async deleteFile(fileName: string,projectId:string) {
     await this.minioClient.removeObject(projectId, fileName)
+  }
+
+  async deleteBucket(bucketName:string){
+    if(await this.minioClient.bucketExists(bucketName)){
+      await this.minioClient.removeBucket(bucketName)
+    }
   }
 
   async downloadFile(fileName: string, bucketName: string) {
@@ -70,8 +66,9 @@ export class MinioService {
 
   getContentType(fileName: string): string {
     const ext = getFileExtension(fileName).toLowerCase();
-    console.log(fileName,ext);
     switch (ext) {
+      case 'jpg' || 'jpeg':
+        return 'image/jpg'
       case 'gz':
         return 'gzip';
       case 'png':
@@ -106,59 +103,116 @@ export class MinioService {
     return `${process.env.MINIO_PROTOCOL??'http://'}${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/`
   }
 
-  async uploadImages(files:Express.Multer.File[],projectId:string){
-    const imageUrls:{[s:string]:string} = files.reduce(async (acc,file,index)=>{
-      const obj = acc
-      obj[`image${index}`] = await this.uploadImage(file as BufferedFile,projectId,`image${index}`)
-      return obj
-    },{})
-    return imageUrls
+  async getStreamFromListObject(bucketName:string,prefix: string):Promise<Minio.BucketItem[]> {
+    const stream = this.minioClient.listObjectsV2(bucketName, prefix, false);
+    const objects:Minio.BucketItem[] = [];
 
+    return new Promise((resolve, reject) => {
+      stream.on('data', (obj) => objects.push(obj));
+      stream.on('error', (err) => reject(err));
+      stream.on('end', () => resolve(objects));
+    });
   }
 
-  async uploadVideo(files:Express.Multer.File[], projectId:string){
-    const videoFile = files[0]
-    if(!(videoFile.mimetype.includes('mp4'))) {
-      throw new HttpException('Error uploading video (.mp4)', HttpStatus.BAD_REQUEST)
+  async getObjectFromMinioIfExists(bucketName:string,prefix=''){
+    const a = await this.getStreamFromListObject(bucketName, prefix);
+    const promises = a.map(async el => {
+      return await this.getFileUrl(el.name, bucketName);
+    });
+    return await Promise.all(promises);
+  }
+
+
+  async uploadImages(files: Express.Multer.File[], projectId: string,postfix?:string) {
+    if (!files || !files.length) {
+      return this.getObjectFromMinioIfExists(projectId,`${postfix??''}image_`)
+    }
+    const promises = files.map(async (file, index) => {
+      const imageUrl = await this.uploadImage(file as BufferedFile, projectId, `/${postfix??''}image_${index}`);
+      return { [`${postfix??''}image_${index}`]: imageUrl };
+    });
+
+    const results = await Promise.all(promises);
+
+    const imageUrls = results.reduce((acc, obj) => {
+      return { ...acc, ...obj };
+    }, {});
+
+    return imageUrls;
+  }
+
+  async uploadVideo(file:Express.Multer.File, projectId:string){
+    const videoFile = file
+    if(!videoFile || !videoFile.mimetype.includes('mp4')) {
+      const el = await this.getObjectFromMinioIfExists(projectId,`video`)
+      if(!el.length) return null
+      return el
+      // throw new HttpException('Error uploading video (.mp4)', HttpStatus.BAD_REQUEST)
+    }
+    if(!file){
+
     }
     await this.createBucketIfNotExists(projectId)
     const ext = videoFile.originalname.substring(videoFile.originalname.lastIndexOf('.'), videoFile.originalname.length);
     const filename = 'video' + ext
     const fileBuffer = videoFile.buffer;
-    this.minioClient.putObject(projectId,filename,fileBuffer, function(err) {
-      if(err) throw new HttpException('Error uploading file', HttpStatus.BAD_REQUEST)
-    })
+    await this.putFileInMinio(projectId,filename,fileBuffer)
+    this.minioClient.setBucketPolicy(
+      projectId,
+      JSON.stringify(this.getPolicy(projectId)),
+      function (err) {
+        if (err) throw err;
+
+        console.log('Bucket policy set');
+      })
 
     return this.getMinioEndpoint() + projectId + filename
   }
+
+  async putFileInMinio(bucketName:string,fileName:string,fileBuffer:string|Buffer|fs.ReadStream,metadata?:UploadedObjectInfo){
+   await this.minioClient.putObject(bucketName,fileName,fileBuffer,{...metadata ?? {},'Content-Type':`${this.getContentType(fileName)}`})
+    this.minioClient.setBucketPolicy(
+      bucketName,
+      JSON.stringify(this.getPolicy(bucketName)),
+      function (err) {
+        if (err) throw err;
+
+        console.log('Bucket policy set');
+      })
+  }
+
 
   async uploadImage(file: BufferedFile, baseBucket: string,tempFileName:string) {
     if(!(file.mimetype.includes('jpeg') || file.mimetype.includes('png'))) {
       throw new HttpException('Error uploading picture (.png, .jpg)', HttpStatus.BAD_REQUEST)
     }
     await this.createBucketIfNotExists(baseBucket)
-    const ext = file.originalname.substring(file.originalname.lastIndexOf('.'), file.originalname.length);
+    let ext = file.originalname.substring(file.originalname.lastIndexOf('.'), file.originalname.length);
+    if(ext.includes('jpeg')){
+      ext = '.jpg'
+    }
     const filename = tempFileName + ext
     const fileBuffer = file.buffer;
-    this.minioClient.putObject(baseBucket,filename,fileBuffer, function(err) {
-      if(err) throw new HttpException('Error uploading file', HttpStatus.BAD_REQUEST)
-    })
+    await this.putFileInMinio(baseBucket,filename,fileBuffer)
+
 
       return this.getMinioEndpoint() + baseBucket + filename
   }
 
 
   async uploadZipProject(file:Express.Multer.File,projectId:string){
-    if(!(file.mimetype.includes('zip'))) {
-      throw new HttpException('Error uploading file (.zip)', HttpStatus.BAD_REQUEST)
+    if(!file || !(file.mimetype.includes('zip'))) {
+      const elements = await this.getObjectFromMinioIfExists(projectId,'game/')
+      if(!elements.length) return null
+      return elements
+      //throw new HttpException('Error uploading file (.zip)', HttpStatus.BAD_REQUEST)
     }
     const { extractionPath, fileNames } = await this.extractZip(file,projectId);
     const responseUrls = this.createMinioUrls(fileNames,projectId)
-    await this.findAndModifyHTML(`${extractionPath}/index.html`,responseUrls);
+    // await this.findAndModifyHTML(`${extractionPath}/index.html`,responseUrls);
     await this.uploadFilesToMinio(extractionPath,projectId);
     await this.deleteTempDirectory(projectId)
-    console.log(`Бакет ${projectId} создан в minio`);
-    return { gameUrls:responseUrls }
+    return responseUrls
   }
 
 
@@ -313,16 +367,16 @@ export class MinioService {
   async uploadFilesToMinio(extractionPath: string,bucketName:string) {
     // Загрузка файлов в MinIO
     try {
-      if(!await this.minioClient.bucketExists(bucketName)) await this.createBucket(bucketName)
-      this.minioClient.setBucketPolicy(
-        bucketName,
-        JSON.stringify(this.getPolicy(bucketName)),
-        function (err) {
-          if (err) throw err;
-
-          console.log('Bucket policy set');
-        },
-      );
+      await this.createBucketIfNotExists(bucketName)
+      // this.minioClient.setBucketPolicy(
+      //   bucketName,
+      //   JSON.stringify(this.getPolicy(bucketName)),
+      //   function (err) {
+      //     if (err) throw err;
+      //
+      //     console.log('Bucket policy set');
+      //   },
+      // );
 
 
       const uploadFileRecursively = async (currentPath: string, basePath: string) => {
@@ -337,7 +391,15 @@ export class MinioService {
           } else {
             const fileStream = fs.createReadStream(filePath);
 
-            await this.minioClient.putObject(bucketName, `/${relativeFilePath}`, fileStream,{'Content-Type':`${this.getContentType(relativeFilePath)}`});
+            await this.putFileInMinio(bucketName,`${relativeFilePath}`,fileStream)
+            this.minioClient.setBucketPolicy(
+              bucketName,
+              JSON.stringify(this.getPolicy(bucketName)),
+              function (err) {
+                if (err) throw err;
+
+                console.log('Bucket policy set');
+              })
             return `${bucketName}/${relativeFilePath}`;
           }
         });
@@ -358,11 +420,12 @@ export class MinioService {
 
   private getPolicy(bucketName:string){
     return  {
+      Version: '2012-10-17',
       Statement: [
         {
           Effect: 'Allow',
           Principal: {
-            AWS: ['*'],
+            AWS: '*',
           },
           Action: [
             's3:ListBucketMultipartUploads',
@@ -374,7 +437,7 @@ export class MinioService {
         {
           Effect: 'Allow',
           Principal: {
-            AWS: ['*'],
+            AWS: '*',
           },
           Action: [
             // 's3:PutObject',

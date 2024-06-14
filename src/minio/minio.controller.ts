@@ -38,11 +38,8 @@ export class MinioController {
       type:'object',
       properties: {
         zip: {
-          type: 'array',
-          items: {
-            type: 'string',
+          type: 'string',
             format: 'binary'
-          }
         },
         images: {
           type: 'array',
@@ -59,22 +56,19 @@ export class MinioController {
           },
         },
         video: {
-          type: 'array',
-          items: {
-            type: 'string',
-            format: 'binary'
-          },
+          type: 'string',
+          format: 'binary'
         }
       }
     }
   })
   async uploadAllFilesToMinio(
-    @UploadedFiles() files: {zip:Express.Multer.File,images:Express.Multer.File[],mainImage:Express.Multer.File[],video:Express.Multer.File[] },
+    @UploadedFiles() files: {zip:Express.Multer.File,images:Express.Multer.File[],mainImage:Express.Multer.File[],video:Express.Multer.File },
     @Param('projectId') projectId:string
   ) {
     const imageUrls = await this.minioService.uploadImages(files.images,projectId)
-    const bundleUrls = await this.minioService.uploadZipProject(files.zip,projectId)
-    const mainImageUrl = await this.minioService.uploadImages(files.mainImage,projectId)
+    const bundleUrls = await this.minioService.uploadZipProject(files.zip[0],projectId)
+    const mainImageUrl = await this.minioService.uploadImages(files.mainImage,projectId,'main_')
     const videoUrl = await this.minioService.uploadVideo(files.video,projectId)
     return {
       images:imageUrls,
@@ -84,31 +78,31 @@ export class MinioController {
     }
   }
 
-  @Post('uploadProject/:projectId')
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    description: 'Zip archive containing project files',
-    type: 'object',
-    schema: {
-      type:'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    }
-  })
-  async uploadProject(@UploadedFile() file: Express.Multer.File, @Param(':projectId') projectId:string) {
-    try {
-     const ulrs = await this.minioService.uploadZipProject(file,projectId)
-      return {success:true,urls:ulrs}
-    } catch (error) {
-      console.error('Ошибка при загрузке проекта:', error);
-      throw error;
-    }
-  }
+  // @Post('uploadProject/:projectId')
+  // @UseInterceptors(FileInterceptor('file'))
+  // @ApiConsumes('multipart/form-data')
+  // @ApiBody({
+  //   description: 'Zip archive containing project files',
+  //   type: 'object',
+  //   schema: {
+  //     type:'object',
+  //     properties: {
+  //       file: {
+  //         type: 'string',
+  //         format: 'binary',
+  //       },
+  //     },
+  //   }
+  // })
+  // async uploadProject(@UploadedFile() file: Express.Multer.File, @Param(':projectId') projectId:string) {
+  //   try {
+  //    const ulrs = await this.minioService.uploadZipProject(file,projectId)
+  //     return {success:true,urls:ulrs}
+  //   } catch (error) {
+  //     console.error('Ошибка при загрузке проекта:', error);
+  //     throw error;
+  //   }
+  // }
 
   @Get('download/:fileName')
   @ApiOperation({ summary: 'Скачать файл из Minio' })
