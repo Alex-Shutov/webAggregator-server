@@ -5,13 +5,16 @@ import {
   Get,
   Param,
   Post,
-  Put,
+  Put, Query,
 } from '@nestjs/common';
 import { EventService } from './event.service';
 import { CreateEventDto } from './dto/createEvent.dto';
 import { UpdateEventDto } from './dto/updateEvent.dto';
 import { EventEntity } from './entities/event.entity';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiQuery, ApiTags } from '@nestjs/swagger';
+import { isCurrentEventDto } from '@app/event/dto/isCurrentEvent.dto';
+import { User } from '@user/decorators/user.decorator';
+import { getAvailableEventsDto } from '@app/event/dto/getAvailableEvents.dto';
 
 @ApiTags('events')
 @Controller('events')
@@ -23,9 +26,19 @@ export class EventController {
     return await this.eventService.create(createEventDto);
   }
 
-  @Get()
-  async findAll(): Promise<EventEntity[]> {
+  @Get('')
+  @ApiQuery({ name: 'isCurrent', required:false})
+  async findAll(@Query() currentEventDto:isCurrentEventDto): Promise<EventEntity[]|EventEntity> {
+    console.log(currentEventDto,123);
+    if(currentEventDto?.isCurrent)
+      return await this.eventService.findCurrent()
     return await this.eventService.findAll();
+  }
+  @Get('/available')
+  @ApiQuery({ name: 'userId', required:false})
+  async findAvailableEvents(@Query() availableEventsDto:getAvailableEventsDto, @User('id') userId:string){
+
+    return await this.eventService.getAvailableEvents(availableEventsDto?.userId ?? userId)
   }
 
   @Get(':id')

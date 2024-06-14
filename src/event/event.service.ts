@@ -5,10 +5,13 @@ import { EventEntity } from './entities/event.entity';
 import { CreateEventDto } from '@app/event/dto/createEvent.dto';
 import { UpdateEventDto } from '@app/event/dto/updateEvent.dto';
 import { IEventStatus } from '@app/event/constants/event.constants';
+import { UserEntity } from '@user/entities/user.entity';
+import { UserService } from '@user/user.service';
 
 @Injectable()
 export class EventService{
-  constructor(@InjectRepository(EventEntity) private readonly eventRepository:Repository<EventEntity>) {}
+  constructor(@InjectRepository(EventEntity) private readonly eventRepository:Repository<EventEntity>,
+              private readonly userService:UserService) {}
   
 
   async create(createEventDto: CreateEventDto): Promise<EventEntity> {
@@ -45,6 +48,10 @@ export class EventService{
     })
   }
 
+  async findCurrent(){
+    return await this.eventRepository.findOneBy({status:IEventStatus.OPENED})
+  }
+
   async update(
     id: string,
     updateEventDto: Partial<UpdateEventDto>,
@@ -67,4 +74,27 @@ export class EventService{
     }
   }
 
+  async getAvailableEvents(userId: string) {
+    const user = await this.userService.findOne({id:userId},['projectIds', 'projectIds.event']);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+    if(!user.projectIds.length){
+      return [await this.findCurrent()]
+    }
+    const userEvents = user.projectIds
+      .map(project => project.event)
+      .filter((event, index, self) => event && self.findIndex(e => e.id === event.id) === index)
+      .sort((a, b) => new Date(a.finishDate).getTime() - new Date(b.finishDate).getTime())
+      .slice(0, 4);
+
+
+    return userEvents.map(event => ({
+      id: event.id,
+      name: event.name,
+      status: event.status,
+      finishDate: event.finishDate,
+    }));
+  }
 }
