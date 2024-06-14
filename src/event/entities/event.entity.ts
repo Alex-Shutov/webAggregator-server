@@ -21,6 +21,6 @@ export class EventEntity {
   status: IEventStatus;
 
   @OneToMany(()=>ProjectEntity,(project)=>project.id)
-  projectIds:string[]
+  projects:ProjectEntity[]
 
 }
