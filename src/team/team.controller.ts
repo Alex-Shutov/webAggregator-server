@@ -5,15 +5,16 @@ import {
   Get,
   Param, Patch,
   Post,
-  Put, Req, UseGuards,
+  Put, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { TeamService } from './team.service';
 import { CreateTeamDto } from './dto/createTeam.dto';
 import { UpdateTeamDto } from './dto/updateTeam.dto';
 import { TeamEntity } from './entities/team.entity';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import { User } from '@user/decorators/user.decorator';
 import { TeamLeaderGuard } from '@app/team/guards/teamLeader.guard';
+import { FindTeamDto } from '@app/team/dto/findTeam.dto';
 
 @ApiTags('teams')
 @Controller('teams')
@@ -21,13 +22,19 @@ export class TeamController {
   constructor(private readonly teamService: TeamService) {}
 
   @Post()
+  @UseGuards(TeamLeaderGuard)
   create(@Body() createTeamDto: CreateTeamDto): Promise<TeamEntity> {
     return this.teamService.create(createTeamDto);
   }
 
   @Get()
-  findAll(): Promise<TeamEntity[]> {
-    return this.teamService.findAll();
+  @ApiQuery({ name: 'withUser', required: false, type: Boolean })
+  @ApiQuery({name:'eventId',required:false,type:String})
+  findAll(
+    @Query() query: FindTeamDto,
+    @User('id') userId: string
+  ): Promise<TeamEntity[]|TeamEntity> {
+    return this.teamService.findAll(query, userId);
   }
 
   @Get(':id')
@@ -35,12 +42,14 @@ export class TeamController {
     return this.teamService.findOne(id);
   }
 
-  @Put(':id')
-  update(
+  @Patch(':id')
+  @UseGuards(TeamLeaderGuard)
+  async update(
     @Param('id') id: string,
     @Body() updateTeamDto: UpdateTeamDto,
-  ): Promise<TeamEntity> {
-    return this.teamService.update(id, updateTeamDto);
+  ): Promise<any> {
+    const team =  await this.teamService.update(id, updateTeamDto);
+    return await this.teamService.createResponse(team)
   }
 
   @Delete(':id')
@@ -53,10 +62,5 @@ export class TeamController {
     return this.teamService.update(userId, updateTeamRoleDto);
   }
 
-  @Post()
-  @UseGuards(TeamLeaderGuard)
-  createTeam(@Body() createTeamDto: CreateTeamDto) {
-    return this.teamService.create(createTeamDto);
-  }
 
 }
