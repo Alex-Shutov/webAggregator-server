@@ -1,4 +1,4 @@
-import { ProjectRolesEntity } from '../../project/entities/projectRoles.entity';
+import { ProjectRolesEntity } from '../../roles/entities/projectRoles.entity';
 import { setSeederFactory } from 'typeorm-extension';
 import { faker } from '@faker-js/faker';
 

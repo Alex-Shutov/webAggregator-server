@@ -5,7 +5,7 @@ import { CategoryEntity } from '../../categories/entities/category.entity';
 import { TeamEntity } from '../../team/entities/team.entity';
 import { UserEntity } from '../../user/entities/user.entity';
 import { LEVEL_LIST, PROGRAM_LIST, ROLES_LIST } from '../../user/constanst/user.constants';
-import { ProjectRolesEntity } from '../../project/entities/projectRoles.entity';
+import { ProjectRolesEntity } from '../../roles/entities/projectRoles.entity';
 import { PROJECT_STATUSES } from '../../project/constants/project.constants';
 
 export default setSeederFactory(ProjectEntity, () => {
