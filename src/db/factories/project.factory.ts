@@ -75,8 +75,8 @@ const createFakeProjectRolesByUsers = (users:UserEntity[],team) => {
   const projRoles:ProjectRolesEntity[] = []
   users.forEach((user)=>{
     const userProjectRole = new ProjectRolesEntity();
-    userProjectRole.user = user
-    userProjectRole.team = team
+    // userProjectRole.user = user
+    // userProjectRole = team
     userProjectRole.role = faker.string.fromCharacters(['developer', 'designer', 'manager']) ;
 
     return userProjectRole;
