@@ -28,7 +28,7 @@ services:
     networks:
       backend:
     ports:
-       - 5432
+      - 5432
     environment:
       POSTGRES_DB: nestserver
       POSTGRES_USER: ${POSTGRES_USER}
@@ -40,7 +40,7 @@ services:
     build:
       context: .
       target: development
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
     ports:
       - 3001
     networks:
@@ -61,9 +61,33 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     user: "node"
+  frontend:
+    build:
+      context: ${INTERFACE_SRC_DIR}
+      target: front
+      dockerfile: Dockerfile
+      args:
+        - SERVICE_URL=${PROTOCOL}://${SERVICE_DOMAIN}
+    expose:
+      - 80
+    environment:
+      - VIRTUAL_HOST=${INTERFACE_DOMAIN}
+      - VIRTUAL_PORT=80
+      - PORT=80
+      - SERVICE_URL=${PROTOCOL}://${SERVICE_DOMAIN}
+      - LETSENCRYPT_HOST=${INTERFACE_DOMAIN}
+      - NODE_ENV=production
+      - HOST = 0.0.0.0
+    networks:
+      reverse-proxy:
+
+
 networks:
   backend:
+    driver: bridge
   reverse-proxy:
+    external:
+      name: reverse-proxy
 volumes:
   postgres_data:
   minio_data:
