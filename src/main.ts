@@ -17,7 +17,7 @@ async function bootstrap() {
     whitelist: false,
   }));
   const corsOptions: CorsOptions = {
-    origin: 'http://147.45.237.191:3000/',
+    origin: '*',
   };
   app.enableCors(corsOptions);
 
