@@ -17,7 +17,7 @@ async function bootstrap() {
     whitelist: false,
   }));
   const corsOptions: CorsOptions = {
-    origin: 'http://localhost:3000',
+    origin: 'http://147.45.237.191:3000/',
   };
   app.enableCors(corsOptions);
 

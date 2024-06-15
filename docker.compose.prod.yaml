@@ -27,8 +27,8 @@ services:
     container_name: postgres_db
     networks:
       backend:
-    ports:
-      - "5432"
+    expose:
+      - 5432
     environment:
       POSTGRES_DB: nestserver
       POSTGRES_USER: ${POSTGRES_USER}
@@ -82,7 +82,7 @@ services:
       context: ${INTERFACE_SRC_DIR}
       target: front
       dockerfile: Dockerfile
-    expose:
+    ports:
       - "3000:3000"
     environment:
       - VIRTUAL_HOST=${INTERFACE_DOMAIN}
