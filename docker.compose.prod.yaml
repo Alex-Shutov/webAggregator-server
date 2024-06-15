@@ -92,7 +92,7 @@ services:
       - PORT=3000
       - SERVICE_URL=${PROTOCOL}://${SERVICE_DOMAIN}
       - LETSENCRYPT_HOST=${INTERFACE_DOMAIN}
-      - NODE_ENV=production
+      - NODE_ENV=development
       - HOST=0.0.0.0
     networks:
       reverse-proxy:
