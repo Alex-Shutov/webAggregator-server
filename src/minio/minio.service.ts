@@ -16,7 +16,7 @@ export class
 
 MinioService {
   private readonly minioClient: Minio.Client;
-  constructor(@Inject(REQUEST) private request: Request,private readonly configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     this.minioClient = new Minio.Client({
       endPoint: this.configService.get('MINIO_ENDPOINT'),
       port: Number(this.configService.get('MINIO_PORT')),

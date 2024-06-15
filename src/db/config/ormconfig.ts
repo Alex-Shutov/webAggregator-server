@@ -5,7 +5,7 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import * as process from 'process';
 import { SeederOptions } from 'typeorm-extension';
 
-dotenvConfig({ path: `.env.${process.env.NODE_ENV}` });
+dotenvConfig({ path: !process.env.NODE_ENV ? '.env' : `.env.${process.env.NODE_ENV}` });
 
 export const dataSourceOptions:DataSourceOptions & SeederOptions = {
   type: 'postgres',
