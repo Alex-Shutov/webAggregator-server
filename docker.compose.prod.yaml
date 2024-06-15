@@ -77,7 +77,7 @@ services:
       - SERVICE_URL=${PROTOCOL}://${SERVICE_DOMAIN}
       - LETSENCRYPT_HOST=${INTERFACE_DOMAIN}
       - NODE_ENV=production
-      - HOST = 0.0.0.0
+      - HOST=0.0.0.0
     networks:
       reverse-proxy:
 
