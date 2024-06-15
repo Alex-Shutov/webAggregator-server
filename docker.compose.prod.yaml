@@ -11,13 +11,13 @@ services:
       - backend
       - reverse-proxy
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      MINIO_ADDRESS: ':9000'
-      MINIO_CONSOLE_ADDRESS: ':9001'
+      MINIO_ADDRESS: ":9000"
+      MINIO_CONSOLE_ADDRESS: ":9001"
     command: minio server /data
   postgres:
     env_file:
@@ -28,7 +28,7 @@ services:
     networks:
       backend:
     ports:
-      - 5432
+      - "5432"
     environment:
       POSTGRES_DB: nestserver
       POSTGRES_USER: ${POSTGRES_USER}
@@ -41,7 +41,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
       - pgadmin:/var/lib/pgadmin
 
@@ -58,7 +58,7 @@ services:
 #      target: development
       dockerfile: Dockerfile
     ports:
-      - '3001:3001'
+      - "3001:3001"
     networks:
       backend:
       reverse-proxy:
@@ -82,18 +82,14 @@ services:
       context: ${INTERFACE_SRC_DIR}
       target: front
       dockerfile: Dockerfile
-      args:
-        - SERVICE_URL=${PROTOCOL}://${SERVICE_DOMAIN}
     expose:
-      - 3000
+      - "3000:3000"
     environment:
       - VIRTUAL_HOST=${INTERFACE_DOMAIN}
       - VIRTUAL_PORT=3000
       - PORT=3000
-      - SERVICE_URL=${PROTOCOL}://${SERVICE_DOMAIN}
       - LETSENCRYPT_HOST=${INTERFACE_DOMAIN}
       - NODE_ENV=development
-      - HOST=0.0.0.0
     networks:
       reverse-proxy:
 
