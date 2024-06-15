@@ -41,7 +41,7 @@ services:
     container_name: app
     build:
       context: ${SERVICE_1_SRC_DIR}
-      target: development
+#      target: development
       dockerfile: Dockerfile
     ports:
       - '3001:3001'
@@ -57,12 +57,12 @@ services:
     environment:
       - VIRTUAL_HOST=${SERVICE_DOMAIN}
       - LETSENCRYPT_HOST=${SERVICE_DOMAIN}
-      - NODE_ENV=production
+#      - NODE_ENV=production
       - PORT=3001
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    user: "node"
+#    user: "node"
   frontend:
     build:
       context: ${INTERFACE_SRC_DIR}
