@@ -121,7 +121,7 @@ export class ProjectService {
   }
 
   async findOne(id: string): Promise<ProjectEntity> {
-    return this.projectRepository.findOne({where:{ id},relations:{team:true,event:true,categoriesId:true} });
+    return this.projectRepository.findOne({where:{ id},relations:['team','team.members','team.members.user','team.members.user.projectRoles','event','categoriesId'] });
   }
 
   async updateProjectRating(projectId: string): Promise<ProjectEntity> {
