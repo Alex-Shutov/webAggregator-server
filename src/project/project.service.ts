@@ -95,7 +95,11 @@ export class ProjectService {
     const skip = (page - 1) * limit;
     const query = this.projectRepository.createQueryBuilder('project')
       .leftJoinAndSelect('project.categoriesId', 'categories')
-      .leftJoinAndSelect('categories.parent', 'parent');
+      .leftJoinAndSelect('categories.parent', 'parent')
+      .leftJoinAndSelect('project.team','team')
+      .leftJoinAndSelect('team.members','members')
+      .leftJoinAndSelect('members.user','user')
+      .leftJoinAndSelect('user.projectRoles','projectRoles')
 
       // .leftJoinAndSelect('categories.parentId', 'parentId');
     if (eventId) {
